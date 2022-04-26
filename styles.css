@@ -1,0 +1,77 @@
+.wait {
+  cursor: wait;
+}
+
+.round-box {
+  border-width: 1px;
+  border-style: solid;
+  border-color: #888;
+  border-radius: 10px;
+}
+
+.control-overlay {
+  margin: 25px;
+  padding: 10px;
+
+  background: #FFF;
+}
+
+#loadingHintÂ {
+  display: inline-block;
+
+  background: #FFF;
+}
+
+#control {
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  width: 250px;
+}
+
+#mynetwork {
+  margin: 25px;
+  padding: 0;
+
+  top: 0;
+  right: 275px;
+  bottom: 0;
+  left: 0;
+}
+
+#unfocusButton {
+  margin: 25px;
+  padding: 10px;
+
+  top: 0;
+  right: 275px;
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-up {
+  background-image: url(lib/vis-4.21.0/img/upArrow.png);
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-down {
+  background-image: url(lib/vis-4.21.0/img/downArrow.png)
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-left {
+  background-image: url(lib/vis-4.21.0/img/leftArrow.png);
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-right {
+  background-image: url(lib/vis-4.21.0/img/rightArrow.png)
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-zoomIn {
+  background-image: url(lib/vis-4.21.0/img/plus.png);
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-zoomOut {
+  background-image: url(lib/vis-4.21.0/img/minus.png);
+}
+
+div.vis-network div.vis-navigation div.vis-button.vis-zoomExtends {
+  background-image: url(lib/vis-4.21.0/img/zoomExtends.png);
+}

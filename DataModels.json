@@ -1,0 +1,67 @@
+{
+  "ServiceNow Releases": {
+    "models": {
+      "ServiceNow Kingston": {
+        "tables": 2270,
+        "references": 14317,
+        "file": "DataModel_ServiceNow-kingston.json",
+        "default": true
+      },
+      "ServiceNow Jakarta": {
+        "tables": null,
+        "references": null,
+        "file": "DataModel_ServiceNow-jakarta.json"
+      },
+      "ServiceNow Istanbul": {
+        "tables": 1958,
+        "references": 2203,
+        "file": "DataModel_ServiceNow-istanbul.json"
+      }
+    }
+  },
+
+  "ServiceNow Plugins": {
+    "models": {
+      "Project Portfolio Suite with Financials": {
+        "description": "",
+        "file": "DataModel_ServiceNow-PPMwF-kingston.json"
+      },
+      "Human Resources (Core)": {
+        "description": "",
+        "file": "DataModel_ServiceNow-HR-kingston.json"
+      },
+      "GRC (Audit, Risk, Compliance, UCF Integration)": {
+        "description": "Complete GRC Suite without Vendor Risk Management",
+        "file": "DataModel_ServiceNow-GRC-kingston.json"
+      },
+      "Agile Development 2.0": {
+        "description": "",
+        "file": "DataModel_ServiceNow-AgileDev2-kingston.json"
+      },
+      "Agile Development (deprecated)": {
+        "description": "",
+        "file": "DataModel_ServiceNow-AgileDev-deprecated.json"
+      },
+      "Event Management": {
+        "description": "",
+        "file": "DataModel_ServiceNow-EM-kingston.json"
+      },
+      "Test Management": {
+        "description": "",
+        "file": "DataModel_ServiceNow-TestMgmt-kingston.json"
+      },
+      "Field Service Management": {
+        "description": "",
+        "file": "DataModel_ServiceNow-FSM-kingston.json"
+      },
+      "Service Portfolio Management": {
+        "description": "",
+        "file": "DataModel_ServiceNow-SPM-kingston.json"
+      },
+      "Managed Documents": {
+        "description": "",
+        "file": "DataModel_ServiceNow-DMS-kingston.json"
+      }
+    }
+  }
+}

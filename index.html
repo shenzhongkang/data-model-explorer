@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Model Explorer</title>
+    <!-- VIS -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/vis/4.9.0/vis.min.js"></script>
+    <link
+      href="https://cdn.bootcdn.net/ajax/libs/vis/4.9.0/vis.min.css"
+      rel="stylesheet"
+    />
+
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.1/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+
+    <link
+      href="https://cdn.bootcdn.net/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.6.0/jquery.slim.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/popper.js/2.11.5/umd/popper.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/4.6.1/js/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="styles.css" />
+    <script src="./tableDataProcessor.js"></script>
+    <script src="./networkUIFunctions.js"></script>
+    <script src="./networkFunctions.js"></script>
+    <script src="./networkFilter.js"></script>
+  </head>
+  <body>
+    <img
+      src="dataModelNetwork.png"
+      id="network-icon"
+      class="position-fixed d-none"
+    />
+
+    <!-- network container -->
+    <div role="main" id="mynetwork" class="position-fixed"></div>
+
+    <div
+      id="control"
+      class="control-overlay card position-fixed"
+      style="overflow: auto"
+    >
+      <div class="card-body p-0 m-0">
+        <h5 class="card-title">Data Model Explorer</h5>
+
+        <div class="container-fluid p-0 form-group">
+          <!-- release selector -->
+          <select
+            id="releaseSelector"
+            onchange="selectRelease()"
+            size="1"
+            class="form-control form-control"
+          >
+            <optgroup label="Custom Data">
+              <!---->
+              <option value="local_file">Load local File</option>
+              <option value="instance">Load from Instance</option>
+              <!---->
+              <!--<option value="load_custom">Import (Instance/File &amp; Compare)</option>-->
+              <!-- <option value="compare">Compare</option> -->
+            </optgroup>
+          </select>
+
+          <hr />
+
+          <!-- local file selector -->
+          <input
+            type="file"
+            id="fileSelector"
+            accept="application/json"
+            style="display: none"
+          />
+
+          <!-- group selector -->
+          <label for="groupSelection" class="col-form-label-sm p-0"
+            ><strong>Inherent Groups</strong></label
+          >
+          <select
+            id="groupSelection"
+            multiple="multiple"
+            onchange="filterGroups()"
+            size="10"
+            class="form-control form-control-sm p-0"
+          ></select>
+
+          <hr />
+
+          <!-- table search -->
+          <div class="input-group input-group-sm mb-3">
+            <input
+              id="searchTerm"
+              type="text"
+              class="form-control"
+              placeholder="search"
+              aria-label="search"
+              aria-describedby="searchTermHelp"
+              onclick="searchForTables(); this.select();"
+              onkeyup="searchForTables()"
+            />
+            <div class="input-group-append">
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
+                onclick="searchForTables(true)"
+              >
+                <span class="oi oi-magnifying-glass"></span>
+              </button>
+            </div>
+            <small
+              id="searchTermHelp"
+              class="form-text text-muted col-12 m-0 p-0 pl-1"
+              >search in the current view</small
+            >
+          </div>
+        </div>
+
+        <div id="entityInfo" class="container-fluid m-0 p-0"></div>
+        <hr />
+
+        <div class="container-fluid m-0 p-0">
+          <a
+            href="javascript: void(0);"
+            onclick="saveExportedData();"
+            class="card-link float-left"
+            >Save Network</a
+          >
+          <span class="float-right">
+            <a
+              href="#LaunchInfoDialog"
+              data-target="#LaunchInfoDialog"
+              data-toggle="modal"
+              >About</a
+            >
+            |
+            <a href="#helpDialog" data-target="#helpDialog" data-toggle="modal"
+              >Help</a
+            >
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="loadingHint"
+      class="round-box control-overlay position-fixed d-none"
+    ></div>
+
+    <button
+      id="unfocusButton"
+      type="button"
+      class="btn btn-secondary position-fixed d-none"
+      onclick="unfocusNetwork()"
+    >
+      <span class="oi oi-action-undo"></span>
+    </button>
+
+    <!-- Instance Data Modal -->
+    <div
+      class="modal fade"
+      id="instanceImportStep1Dialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="instanceImportStep1DialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="instanceImportStep1DialogTitle">
+              Step 1: Extract Data Model from Instance
+            </h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-primary" role="alert">
+              Due to problems with
+              <a
+                href="https://en.wikipedia.org/wiki/Cross-origin_resource_sharing"
+                target="_blank"
+                >CORS</a
+              >, the Table API can not be used from within the browser and
+              proxying via the server is a no go as none of your instance data
+              should run through foreign servers.<br /><br />Therefor a JSON
+              outputting script is provided, allowing you to paste the result in
+              the next step.
+            </div>
+            <form>
+              <div class="form-group">
+                <label for="instanceSource"
+                  >Run following script as a background script (make sure to
+                  catch all the text in the text area below)</label
+                >
+                <textarea
+                  id="instanceSource"
+                  class="form-control"
+                  rows="10"
+                  aria-describedby="instanceSource"
+                  style="
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 10pt;
+                    white-space: nowrap;
+                    overflow: auto;
+                  "
+                ></textarea>
+                <small
+                  id="instanceSourceHelp"
+                  class="form-text text-muted col-12 m-0 p-0 pl-1"
+                  >To run the script, open /sys.scripts.do on your instance or
+                  run the Module "Scripts - Background" in Application "System
+                  Definition"</small
+                >
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              id="instanceImportResultsButton"
+              type="button"
+              class="btn btn-primary"
+              onclick="instanceImportStep2();"
+            >
+              I got the result
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="instanceImportStep2Dialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="instanceImportStep2DialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="instanceImportStep2DialogTitle">
+              Step 2: Import Extracted Data Model
+            </h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form>
+              <div class="form-group">
+                <label for="instanceResult"
+                  >Paste complete result page text here</label
+                >
+                <textarea
+                  id="instanceResult"
+                  class="form-control"
+                  rows="10"
+                  style="
+                    font-family: 'Courier New', Courier, monospace;
+                    font-size: 10pt;
+                    white-space: nowrap;
+                    overflow: auto;
+                  "
+                ></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="importAsPlugin"
+              onclick="loadPluginData();"
+            >
+              Import Data Model as Plugin
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              id="importAsNew"
+              onclick="loadInstanceData();"
+            >
+              Import Data Model
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Search Result Modal -->
+    <div
+      class="modal fade"
+      id="fullSearchResultDialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="fullSearchResultDialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="fullSearchResultTitle"></h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="fullSearchResultBody" class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table Info Modal -->
+    <div
+      class="modal fade"
+      id="tableInfoDialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="tableInfoDialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="tableInfoTitle"></h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div id="tableInfoBody" class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div
+      class="modal fade"
+      id="helpDialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="helpDialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="helpDialogTitle">
+              Data Model Explorer &mdash; Help
+            </h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <p>Scroll or use pinch gesture to zoom.</p>
+            <p>Click on a node (table) to show the menu of options.</p>
+            <p>Hover over a node to view a node's or edge's detail.</p>
+            <p>
+              The bigger a node is, the more often it is related; therefor
+              bigger nodes play a bigger role.
+            </p>
+            <p>
+              Quick-filter groups by selecting a group on the right-hand side.
+            </p>
+            <p>
+              Groups are groups due to a mutual extension tree or due to a name
+              prefix by a (base) table occuring in a tables name.
+            </p>
+            <p>
+              Sometimes filtering resultes in a huge number (> 350) of nodes
+              (e.g. group cmdb has over 500 belonging nodes). Those filter
+              results aren't re-rendered but the view is really just filtered.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Launch Information Modal -->
+    <div
+      class="modal"
+      id="LaunchInfoDialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="LaunchInfoDialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="LaunchInfoDialogTitle">
+              Data Model Explorer
+            </h5>
+          </div>
+          <div class="modal-body">
+            <p>
+              This tool presents the database structure in the form of nodes and
+              edges visualizing the Data Model interactively.
+            </p>
+            <p>
+              Scroll or use pinch gesture to zoom. Click on nodes (tables) to
+              drill in &ndash; you have several options for drilling in. Bigger
+              nodes play a bigger role.
+            </p>
+            <p>
+              <em
+                >This tool doesn't store any information from or about you, nor
+                is your data processed besides standard HTTP protocol data for
+                communication. It runs entirely in your browser.</em
+              >
+            </p>
+            <div class="container">
+              <div class="row mt-4 mb-2">
+                <strong>For more information please contact:</strong>
+              </div>
+              <div class="row">
+                <div class="col col-auto">
+                  CBC Faruhn
+                  <br />
+                  <br />
+                  Ibrahim-Ben Faruhn <br />
+                  M&uuml;ggelseedamm 157 <br />
+                  12587 Berlin
+                </div>
+                <div class="col col-auto">
+                  VAT-ID: DE 309 715 667
+                  <br />
+                  <br />
+                  <a href="http://www.cbc-faruhn.com" target="_blank"
+                    >http://www.cbc-faruhn.com</a
+                  >
+                  <br />
+                  <a href="mailto:hello[at]cbc-faruhn.com"
+                    >hello&nbsp;@&nbsp;cbc-faruhn.com</a
+                  >
+                  <br />
+                  <a href="tel:+4917629474887">+49 176 - 29 47 48 87</a>
+                </div>
+              </div>
+              <div class="row mt-2">
+                <div class="col-auto"></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-dismiss="modal">
+              Got it!
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Custom Data Modal -->
+    <div
+      class="modal fade"
+      id="importCustomDialog"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby="importCustomDialogTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header bg-dark text-light">
+            <h5 class="modal-title" id="importCustomDialogTitle">
+              Data Model Explorer &mdash; Import
+            </h5>
+            <button
+              type="button"
+              class="close text-light"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="container">
+              <div class="row">
+                <div class="col-6">Test 1</div>
+                <div class="col-6">Test 2</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-dismiss="modal"
+            >
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary">Run</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="nodeMenu" class="dropdown-menu position-fixed p-0">
+      <a
+        id="nodeMenu-showExtensionPath"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show Extension Path</a
+      >
+      <a
+        id="nodeMenu-showExtensionTree"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show Extension Tree</a
+      >
+      <a
+        id="nodeMenu-showGeneralContext"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show General Context</a
+      >
+      <a
+        id="nodeMenu-showReferenceContext"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show Reference Context</a
+      >
+      <div id="nodeMenu-divider" class="dropdown-divider"></div>
+      <a
+        id="nodeMenu-showDetails"
+        class="dropdown-item d-none py-1 px-2"
+        href="javascript: void(0);"
+        >Show Details</a
+      >
+      <a
+        id="nodeMenu-showGroup"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show Group</a
+      >
+    </div>
+
+    <div id="searchMenu" class="dropdown-menu position-fixed p-0">
+      <a
+        id="searchMenu-Result1"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Result 1</a
+      >
+      <a
+        id="searchMenu-Result2"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Result 2</a
+      >
+      <a
+        id="searchMenu-Result3"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Result 3</a
+      >
+      <div id="searchMenu-divider" class="dropdown-divider"></div>
+      <a
+        id="searchMenu-moreResults"
+        class="dropdown-item py-1 px-2"
+        href="javascript: void(0);"
+        >Show All</a
+      >
+      <a
+        disabled="disabled"
+        id="searchMenu-noResults"
+        class="dropdown-item py-1 px-2 text-disabled"
+        href="javascript: void(0);"
+        >No results...</a
+      >
+    </div>
+
+    <!-- data load -->
+    <script type="text/javascript" src="rawPositions.js"></script>
+
+    <script type="text/javascript">
+      $(document).ready(function () {
+        var container = $('#mynetwork').get(0);
+        network = new vis.Network(container);
+
+        $('#LaunchInfoDialog').modal('show');
+
+        setTimeout(function () {
+          loadRemoteFile('DataModels.json', function (source) {
+            try {
+              var releaseSelector = $('#releaseSelector');
+              var defaultSelection = '';
+
+              var src = '';
+
+              window.availableModels = JSON.parse(source);
+
+              for (category in window.availableModels) {
+                src += '<optgroup label="' + category + '">';
+                for (release in window.availableModels[category].models) {
+                  var dataModel =
+                    window.availableModels[category].models[release];
+                  src +=
+                    '<option value="' +
+                    dataModel.file +
+                    '">' +
+                    release +
+                    '</option>';
+
+                  if (dataModel.default == true) {
+                    defaultSelection = dataModel.file;
+                  }
+                }
+                src += '</optgroup>';
+              }
+
+              releaseSelector.prepend(src);
+
+              if (defaultSelection != '') {
+                loadRemoteFile(defaultSelection);
+                releaseSelector.val(defaultSelection);
+              }
+            } catch (err) {
+              alert('ERROR\n\n' + err);
+            }
+          });
+        }, 250);
+      });
+
+      function zoomTo100() {
+        network.moveTo({
+          scale: 1,
+          position: {
+            x: 0,
+            y: 0,
+          },
+        });
+      }
+
+      function getCanvasSize() {
+        var top = 0;
+        var left = 0;
+        var bottom = 0;
+        var right = 0;
+
+        networkData.nodes.forEach(function (node) {
+          var box = network.getBoundingBox(node.id);
+          if (box.top < top) top = box.top;
+          if (box.left < left) left = box.left;
+          if (box.bottom > bottom) bottom = box.bottom;
+          if (box.right > right) right = box.right;
+        });
+
+        console.log(right - left + 'x' + (bottom - top));
+      }
+    </script>
+    <script src="./rawPositions.js"></script>
+    <script src="./networkSetup.js"></script>
+  </body>
+</html>
